@@ -251,5 +251,34 @@ Router.get('/feed', VerifyToken, async (req, res) => {
 })
 
 
+// Get Users you may know
+Router.get('/discover', VerifyToken, async (req, res) => {
+    try {
+        const user = await UserModel.findById(req.user.id);
+        const userId = user._id;
+        const users = await UserModel.find({
+
+            $and: [{
+                '_id': {
+                    $ne: userId
+                }
+            }, {
+                userId: {
+                    $nin: user.following
+
+                }
+            }]
+        });
+        return res.send(users);
+
+    } catch (error) {
+        console.log(error)
+        return res.send({
+            error: true,
+            message: "Oops, Something went wrong. Please try again later."
+        })
+    }
+})
+
 
 module.exports = Router;
