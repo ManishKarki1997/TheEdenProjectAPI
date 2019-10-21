@@ -41,7 +41,7 @@ const ProjectModel = require("../models/Project");
 const Router = express.Router();
 
 // Fetch User Profile using Username
-Router.get("/:username", async (req, res) => {
+Router.get("/profile/:username", async (req, res) => {
     try {
         const users = await UserModel.findOne({
             username: req.params.username
@@ -69,12 +69,12 @@ Router.post("/", upload.single("avatar"), async (req, res) => {
             bio
         } = req.body;
 
-        // Todo: delete saved image if signup fails
 
         const {
             error
         } = UserValidation(req.body);
         if (error) {
+            deleteFile(req.file.filename);
             return res.send({
                 error: true,
                 message: error.details[0].message
@@ -117,6 +117,8 @@ Router.post("/", upload.single("avatar"), async (req, res) => {
             avatar: req.file.filename,
             bio
         });
+
+
 
         const result = await user.save();
 
@@ -226,6 +228,27 @@ Router.post('/follow', VerifyToken, async (req, res) => {
         })
     }
 });
+
+
+// Get feeds for a specific user (i.e from users he is following)
+Router.get('/feed', VerifyToken, async (req, res) => {
+    try {
+        const user = await UserModel.findById(req.user.id);
+        // const userId = req.user.id;
+        const projects = await ProjectModel.find({
+            'user': {
+                $in: user.following
+            }
+        })
+        return res.send(projects);
+
+    } catch (error) {
+        return res.send({
+            error: true,
+            message: "Oops, something went wrong"
+        })
+    }
+})
 
 
 

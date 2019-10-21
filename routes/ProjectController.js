@@ -90,7 +90,11 @@ Router.post('/', VerifyToken, upload.single('image'), async (req, res) => {
             technology
         });
 
+
         const result = await project.save();
+        const currentUser = await UserModel.findById(user);
+        currentUser.projects.push(project._id);
+        await currentUser.save();
 
         return res.send(result);
 
