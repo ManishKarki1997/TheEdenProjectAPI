@@ -38,7 +38,7 @@ const ProjectModel = require("../models/Project");
 
 const Router = express.Router();
 
-
+// Fetch all projects
 Router.get('/', async (req, res) => {
     try {
         const pageNumber = parseInt(req.query.pageNumber) || 2;
@@ -61,6 +61,7 @@ Router.get('/', async (req, res) => {
     }
 });
 
+// Create a project
 Router.post('/', VerifyToken, upload.single('image'), async (req, res) => {
     try {
         const {
@@ -101,6 +102,8 @@ Router.post('/', VerifyToken, upload.single('image'), async (req, res) => {
     }
 });
 
+
+// Edit Project
 Router.put('/', VerifyToken, upload.single('image'), async (req, res) => {
     try {
         const {
@@ -130,6 +133,7 @@ Router.put('/', VerifyToken, upload.single('image'), async (req, res) => {
     }
 });
 
+// Delete a project
 Router.delete('/:projectId', VerifyToken, async (req, res) => {
     try {
         const project = await ProjectModel.findById(req.params.projectId);
@@ -154,6 +158,7 @@ Router.delete('/:projectId', VerifyToken, async (req, res) => {
     }
 })
 
+// Bookmark a project
 Router.post('/bookmark', VerifyToken, async (req, res) => {
     try {
         const {

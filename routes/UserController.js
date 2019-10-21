@@ -1,8 +1,9 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const UserValidation = require('../validation/UserValidation');
-const deleteFile = require('../utils/deleteFile')
+const UserValidation = require("../validation/UserValidation");
+const deleteFile = require("../utils/deleteFile");
+const VerifyToken = require('../middlewares/verifyToken');
 
 const multer = require("multer");
 const storage = multer.diskStorage({
@@ -39,6 +40,7 @@ const ProjectModel = require("../models/Project");
 
 const Router = express.Router();
 
+// Fetch User Profile using Username
 Router.get("/:username", async (req, res) => {
     try {
         const users = await UserModel.findOne({
@@ -56,6 +58,7 @@ Router.get("/:username", async (req, res) => {
     }
 });
 
+// User Signup
 Router.post("/", upload.single("avatar"), async (req, res) => {
     try {
         const {
@@ -75,9 +78,8 @@ Router.post("/", upload.single("avatar"), async (req, res) => {
             return res.send({
                 error: true,
                 message: error.details[0].message
-            })
-        };
-
+            });
+        }
 
         // Check for duplicate email
         const existingEmail = await UserModel.findOne({
@@ -120,8 +122,10 @@ Router.post("/", upload.single("avatar"), async (req, res) => {
 
         // Todo: fix dotenv config not working  process.env.JWT_TOKEN_SECRET
         const jwtToken = jwt.sign({
-            id: result._id
-        }, 'randomjsonwebtokenfornow999');
+                id: result._id
+            },
+            "randomjsonwebtokenfornow999"
+        );
 
         return res.send({
             jwtToken,
@@ -135,7 +139,8 @@ Router.post("/", upload.single("avatar"), async (req, res) => {
     }
 });
 
-Router.post('/login', async (req, res) => {
+// User Login
+Router.post("/login", async (req, res) => {
     try {
         const {
             username,
@@ -148,8 +153,10 @@ Router.post('/login', async (req, res) => {
         const passwordMatches = await bcrypt.compare(password, user.password);
         if (passwordMatches) {
             const jwtToken = jwt.sign({
-                id: user._id
-            }, 'randomjsonwebtokenfornow999');
+                    id: user._id
+                },
+                "randomjsonwebtokenfornow999"
+            );
             return res.send({
                 jwtToken
             });
@@ -157,15 +164,69 @@ Router.post('/login', async (req, res) => {
             return res.send({
                 error: true,
                 message: "Invalid Credentials."
-            })
+            });
         }
-
     } catch (error) {
         return res.send({
             error: true,
             message: "Something went wrong while logging in. Please try again later."
+        });
+    }
+});
+
+//User Edit Profile
+Router.put('/', VerifyToken, upload.single('avatar'), async (req, res) => {
+    try {
+        const {
+            bio
+        } = req.body;
+        const user = await UserModel.findById(req.user.id);
+
+        user.bio = bio || user.bio;
+
+        if (req.file.filename) {
+            deleteFile(user.avatar);
+            user.avatar = req.file.filename;
+        }
+
+        const result = await user.save();
+        return res.send(result);
+
+
+    } catch (error) {
+        return res.send({
+            error: true,
+            message: "Oops something went wrong"
         })
     }
-})
+});
+
+
+// Follow/Unfollow a user
+Router.post('/follow', VerifyToken, async (req, res) => {
+    try {
+        const {
+            userId
+        } = req.body;
+        let user = await UserModel.findById(req.user.id);
+
+        if (user.following.indexOf(userId) >= 0) {
+            user.following.splice(user.following.indexOf(userId), 1);
+        } else {
+            user.following.push(userId);
+        }
+
+        await user.save();
+        return res.send("Operation Successful");
+
+    } catch (error) {
+        return res.send({
+            error: true,
+            message: "Oops, something went wrong"
+        })
+    }
+});
+
+
 
 module.exports = Router;
